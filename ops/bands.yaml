@@ -1,0 +1,17 @@
+# Stage 6: control bands. Detection is deterministic (ops/detect.py). No model decides whether to act.
+# Each metric has a baseline mean and standard deviation; the tier is how many sigmas away the value is.
+metrics:
+  http_5xx_rate:
+    baseline: { mean: 0.002, stddev: 0.001 }
+    runbook: ops/runbooks/high-5xx.md
+  login_failures_per_min:
+    baseline: { mean: 4, stddev: 2 }
+    runbook: ops/runbooks/login-spike.md
+  p95_latency_ms:
+    baseline: { mean: 120, stddev: 30 }
+    runbook: ops/runbooks/high-5xx.md
+
+tiers:
+  1: { action: log }                      # 1 sigma: just record it
+  2: { action: diagnose, read_only: true } # 2 sigma: Claude diagnoses with read-only tools, writes intent.md
+  3: { action: propose, runbook: true }    # 3 sigma: Claude opens a PR or runs the pre-approved runbook
