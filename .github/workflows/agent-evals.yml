@@ -1,0 +1,30 @@
+# Stage 4: continuous evals. Changes to Claude's configuration are gated on these results.
+name: Agent evals
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"   # weekly
+  pull_request:
+    paths:
+      - CLAUDE.md
+      - REVIEW.md
+      - .claude/**
+      - evals/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: ./evals/run-evals.sh
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          EVAL_MIN_PASS_RATE: "100"
