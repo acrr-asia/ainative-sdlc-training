@@ -1,0 +1,6 @@
+# Humans own the guardrails. Agent PRs that touch these need a code owner's approval.
+/.github/        @sansancsv
+/.claude/        @sansancsv
+/CLAUDE.md       @sansancsv
+/REVIEW.md       @sansancsv
+/src/TaskApi/Auth/ @sansancsv

@@ -1,0 +1,49 @@
+# Stage 4/5: every PR must build, be formatted, and pass tests before a human can merge.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore
+      - run: dotnet build --no-restore -warnaserror
+      - run: dotnet format --no-restore --verify-no-changes
+      - run: dotnet test --no-build --logger "trx;LogFileName=results.trx"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: tests/**/TestResults/*.trx
+
+  # Read-only judgment step (playbook: start CI integration with triage, not writes).
+  triage:
+    needs: build-test
+    if: failure() && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            The CI run ${{ github.run_id }} failed on this PR. Read the job logs with `gh run view ${{ github.run_id }} --log-failed`.
+            Post ONE PR comment: which step failed, the likely cause with file:line, and whether it looks flaky.
+            Do not edit files or push.
+          claude_args: --allowedTools "Bash(gh run view:*),Bash(gh pr comment:*),Read,Grep,Glob"
