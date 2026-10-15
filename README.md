@@ -26,6 +26,8 @@ curl -X POST localhost:5033/tasks -H "authorization: Bearer $TOKEN" -H 'content-
 curl localhost:5033/tasks -H "authorization: Bearer $TOKEN"
 ```
 
+To click through the whole flow, import the Postman collection in [`postman/`](postman/README.md).
+
 ## Where each playbook practice lives
 
 | Stage | Playbook practice | In this repo |
