@@ -14,7 +14,7 @@ as a file you can open**. The features are deliberately small; the process aroun
 ## Quick start
 
 ```bash
-dotnet test                              # 25 tests, about 5 seconds
+dotnet test                              # 33 tests, under 10 seconds
 dotnet run --project src/TaskApi         # http://localhost:5033, OpenAPI at /openapi/v1.json
 ```
 
@@ -47,7 +47,7 @@ curl localhost:5033/tasks -H "authorization: Bearer $TOKEN"
 | | CI/CD: read-only judgment steps first | `triage` job in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) comments on failures, cannot push |
 | | Rollback is one rehearsed command | `ops/deploy.sh prod --rollback` |
 | **6. Maintain** | Deterministic detection, response tiers in `bands.yaml` | [`ops/bands.yaml`](ops/bands.yaml), [`ops/detect.py`](ops/detect.py) (no model decides) |
-| | Claude writes its diagnosis as a new `intent.md` | [`intent/0002-login-throttling.md`](intent/0002-login-throttling.md) (status: Proposed) |
+| | Claude writes its diagnosis as a new `intent.md` | [`intent/0002-login-throttling.md`](intent/0002-login-throttling.md), then taken around the loop again: [`specs/0002-login-throttling/`](specs/0002-login-throttling), `LoginThrottle`, eval `throttle-keeps-s3` |
 | | Runbooks and lessons, version-controlled | [`ops/runbooks/`](ops/runbooks), [`docs/lessons.md`](docs/lessons.md) |
 | **Audit trail** | Each stage is a commit the next stage reads | `git log --oneline`: one commit per stage |
 
@@ -56,6 +56,7 @@ curl localhost:5033/tasks -H "authorization: Bearer $TOKEN"
 | Feature | Practice it shows |
 |---|---|
 | `POST /auth/register`, `POST /auth/login`, `GET /auth/me` | JWT bearer auth; key validated at startup (S1), same error for bad email or password (S3) |
+| Login throttling (spec 0002) | 5 failed logins per IP per minute → `429` + `Retry-After` for 1 minute (S6 to S9); the loop's second lap |
 | `GET/POST/DELETE /categories` | Role-based policy: anyone signed in can read, only `AdminOnly` can write |
 | `GET/POST/PUT/DELETE /tasks` | Resource-based policy `TaskOwnerOrAdmin`; non-owners get `404` (S4) |
 | `GET /admin/users`, `PUT /admin/users/{id}/role` | Policy on a whole route group; no password hashes returned (S5) |
