@@ -47,16 +47,29 @@ public static class AuthEndpoints
     }
 
     private static async Task<IResult> Login(
-        LoginRequest req, AppDbContext db, IPasswordHasher<User> hasher, TokenService tokens)
+        LoginRequest req, HttpContext http, AppDbContext db, IPasswordHasher<User> hasher, TokenService tokens,
+        LoginThrottle throttle)
     {
+        // Spec S6/S7: check the lockout before looking at the email or password.
+        var ip = http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        if (throttle.IsLockedOut(ip, out var retryAfter))
+        {
+            http.Response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString();
+            return Results.Problem("Too many failed logins. Try again later.", statusCode: StatusCodes.Status429TooManyRequests);
+        }
+
         var email = req.Email?.Trim().ToLowerInvariant() ?? "";
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == email);
 
         // Spec S3: one response for "no such user" and "wrong password".
         if (user is null || hasher.VerifyHashedPassword(user, user.PasswordHash, req.Password ?? "")
             == PasswordVerificationResult.Failed)
+        {
+            throttle.RecordFailure(ip);
             return Results.Problem("Invalid email or password.", statusCode: StatusCodes.Status401Unauthorized);
+        }
 
+        throttle.Reset(ip);
         return Results.Ok(tokens.Issue(user));
     }
 }
