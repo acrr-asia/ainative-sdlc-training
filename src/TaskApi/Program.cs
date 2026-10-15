@@ -23,6 +23,8 @@ builder.Services.AddOptions<JwtOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<TokenService>();
+builder.Services.AddOptions<LoginThrottleOptions>().BindConfiguration(LoginThrottleOptions.Section);
+builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
